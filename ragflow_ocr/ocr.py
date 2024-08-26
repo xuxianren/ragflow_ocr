@@ -14,11 +14,12 @@
 import copy
 import time
 import os
+import math
 
+import cv2
 from huggingface_hub import snapshot_download
 
-# from api.utils.file_utils import get_project_base_directory
-from .operators import *
+from .operators import DetResizeForTest, NormalizeImage, ToCHWImage, KeepKeys
 import numpy as np
 import onnxruntime as ort
 
@@ -465,7 +466,7 @@ class TextDetector(object):
 
 
 class OCR(object):
-    def __init__(self, model_dir=None):
+    def __init__(self, model_dir="./checkpoints"):
         """
         If you have trouble downloading HuggingFace models, -_^ this might help!!
 
@@ -477,21 +478,15 @@ class OCR(object):
         ^_-
 
         """
-        if model_dir is None:
-            model_dir = ""
-        if not model_dir:
-            try:
-                model_dir = os.path.join(
-                        get_project_base_directory(),
-                        "rag/res/deepdoc")
-                self.text_detector = TextDetector(model_dir)
-                self.text_recognizer = TextRecognizer(model_dir)
-            except Exception as e:
-                model_dir = snapshot_download(repo_id="InfiniFlow/deepdoc",
-                                              local_dir=os.path.join(get_project_base_directory(), "rag/res/deepdoc"),
-                                              local_dir_use_symlinks=False)
-                self.text_detector = TextDetector(model_dir)
-                self.text_recognizer = TextRecognizer(model_dir)
+        try:
+            self.text_detector = TextDetector(model_dir)
+            self.text_recognizer = TextRecognizer(model_dir)
+        except Exception as e:
+            model_dir = snapshot_download(repo_id="InfiniFlow/deepdoc",
+                                        local_dir=model_dir,
+                                        local_dir_use_symlinks=False)
+            self.text_detector = TextDetector(model_dir)
+            self.text_recognizer = TextRecognizer(model_dir)
 
         self.drop_score = 0.5
         self.crop_image_res_index = 0
